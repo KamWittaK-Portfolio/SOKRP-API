@@ -1,0 +1,58 @@
+name: CI/CD API Pipeline
+
+on:
+  push:
+    branches:
+      - api/dev
+      - api/prod
+
+jobs:
+  deploy_to_dev:
+    if: github.ref == 'refs/heads/api/dev'
+    name: Deploy API to Dev Server
+    runs-on: self-hosted
+    env:
+      WORK_DIR: ${{ secrets.WORK_DIR }}
+    steps:
+      - name: Git Pull
+        uses: actions/checkout@v3
+      - name: Deploy API to server
+        continue-on-error: true
+        run: |
+          echo "Deploying API to Dev server..."
+          rsync -av --no-group --omit-dir-times --delete "${{ github.workspace }}/" "${{ env.WORK_DIR }}/"
+      - name: Copy .env and starter.sh files
+        continue-on-error: true
+        run: |
+          echo "Copying .env and starter.sh files to WORK_DIR..."
+          cp "/API/data/Development/.env" "${{ env.WORK_DIR }}/"
+          cp "/API/data/Development/creds.json" "${{ env.WORK_DIR }}/"
+          cp "/API/data/starter.sh" "${{ env.WORK_DIR }}/"
+          cp "/API/data/package.json" "${{ env.WORK_DIR }}/"
+          cp "/API/data/package-lock.json" "${{ env.WORK_DIR }}/"
+          rsync -av "/API/data/node_modules/" "${{ env.WORK_DIR }}/node_modules/"
+
+  deploy_to_prod:
+    if: github.ref == 'refs/heads/api/prod'
+    name: Deploy API to Prod Server
+    runs-on: self-hosted
+    env:
+      PROD_DIR: ${{ secrets.PROD_DIR }}
+    steps:
+      - name: Git Pull
+        uses: actions/checkout@v3
+      - name: Deploy API to server
+        continue-on-error: true
+        run: |
+          echo "Deploying API to Prod server..."
+          rsync -av --delete "${{ github.workspace }}/" "${{ env.PROD_DIR }}/"
+      - name: Copy .env and starter.sh files
+        continue-on-error: true
+        run: |
+          echo "Copying .env and starter.sh files to PROD_DIR..."
+          cp "/API/data/Production/.env" "${{ env.PROD_DIR }}/"
+          cp "/API/data/Production/creds.json" "${{ env.PROD_DIR }}/"
+          cp "/API/data/starter.sh" "${{ env.PROD_DIR }}/"
+          cp "/API/data/package.json" "${{ env.PROD_DIR }}/"
+          cp "/API/data/package-lock.json" "${{ env.PROD_DIR }}/"
+          rsync -av "/API/data/node_modules/" "${{ env.PROD_DIR }}/node_modules/"
